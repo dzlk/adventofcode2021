@@ -5,24 +5,44 @@ import (
 	"errors"
 	"log"
 	"os"
+	"strconv"
+	"strings"
 )
+
+func GetNumbersFromString(str string, sep string) ([]int, error) {
+	nums := make([]int, 0)
+
+	for _, p := range strings.Split(str, sep) {
+		if p == "" {
+			continue
+		}
+		n, err := strconv.Atoi(p)
+		if err != nil {
+			return nums, err
+		}
+
+		nums = append(nums, n)
+	}
+
+	return nums, nil
+}
 
 func ReadAllStrings(filename string) ([]string, error) {
 	done := make(chan struct{})
 	defer close(done)
 
-	strings := make([]string, 0)
+	strs := make([]string, 0)
 
 	stringsStream, streamErr := ReadStrings(done, filename)
 	for s := range stringsStream {
-		strings = append(strings, s)
+		strs = append(strs, s)
 	}
 
 	if err := <-streamErr; err != nil {
 		return nil, err
 	}
 
-	return strings, nil
+	return strs, nil
 }
 
 func ReadStrings(done <-chan struct{}, filename string) (<-chan string, <-chan error) {
