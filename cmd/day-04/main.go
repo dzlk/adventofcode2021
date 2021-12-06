@@ -6,15 +6,24 @@ import (
 	"fmt"
 )
 
+type GameStrategy int
+
+const (
+	FirstWinner GameStrategy = iota
+	LastWinner
+)
+
 type Game struct {
-	boards  []*Board
-	numbers []int
+	boards   []*Board
+	numbers  []int
+	strategy GameStrategy
 }
 
-func NewGame(numbers []int) *Game {
+func NewGame(numbers []int, strategy GameStrategy) *Game {
 	return &Game{
 		make([]*Board, 0),
 		numbers,
+		strategy,
 	}
 }
 
@@ -29,11 +38,37 @@ func (g *Game) AddBoard(b *Board) error {
 
 func (g *Game) Play() (*Board, int) {
 	for _, num := range g.numbers {
-		for _, b := range g.boards {
+		winners := make(map[int]int)
+		for i, b := range g.boards {
 			if b.CheckNumAndCheckWin(num) {
-				return b, num
+				if g.strategy == FirstWinner {
+					return b, num
+				}
+
+				winners[i] = 1
 			}
 		}
+
+		if len(winners) == 0 {
+			continue
+		}
+
+		boards := make([]*Board, 0)
+		var lastBoardWinner *Board
+
+		for i, board := range g.boards {
+			if _, ok := winners[i]; ok {
+				lastBoardWinner = board
+			} else {
+				boards = append(boards, board)
+			}
+		}
+
+		if len(boards) == 0 {
+			return lastBoardWinner, num
+		}
+
+		g.boards = boards
 	}
 
 	return nil, 0
@@ -157,7 +192,7 @@ func (b *Board) getSumUncheckedNumbers() int {
 	return sum
 }
 
-func readGame(filename string) (*Game, error) {
+func readGame(filename string, strategy GameStrategy) (*Game, error) {
 	done := make(chan struct{})
 	defer close(done)
 
@@ -172,7 +207,7 @@ func readGame(filename string) (*Game, error) {
 				return game, err
 			}
 
-			game = NewGame(nums)
+			game = NewGame(nums, strategy)
 			continue
 		}
 
@@ -218,8 +253,8 @@ func readGame(filename string) (*Game, error) {
 	return game, nil
 }
 
-func playGame(filename string) {
-	game, err := readGame(filename)
+func playGame(filename string, strategy GameStrategy) {
+	game, err := readGame(filename, strategy)
 	if err != nil {
 		panic(err)
 	}
@@ -234,7 +269,11 @@ func playGame(filename string) {
 }
 
 func main() {
-	playGame("./input.txt")
+	playGame("./input.txt", FirstWinner)
 	fmt.Println("------")
-	playGame("./input-1.txt")
+	playGame("./input-1.txt", FirstWinner)
+	fmt.Println("------")
+	playGame("./input.txt", LastWinner)
+	fmt.Println("------")
+	playGame("./input-2.txt", LastWinner)
 }
