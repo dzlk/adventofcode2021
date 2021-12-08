@@ -50,8 +50,8 @@ func parseReport(line string) (*Report, error) {
 	return &Report{x1, y1, x2, y2}, nil
 }
 
-func generateDangerZones(report *Report, withoutDiagonals bool) <-chan int {
-	zones := make(chan int)
+func generateDangerZones(report *Report, withoutDiagonals bool) <-chan string {
+	zones := make(chan string)
 
 	go func() {
 		defer close(zones)
@@ -78,7 +78,7 @@ func generateDangerZones(report *Report, withoutDiagonals bool) <-chan int {
 		y := startY
 		for x != endX || y != endY {
 			//fmt.Printf("(x, y) = (%d, %d) => %d\n", x, y, x*K+y)
-			zones <- x*K + y
+			zones <- serializeXY(x, y)
 
 			if x != endX {
 				x += changeX
@@ -89,19 +89,22 @@ func generateDangerZones(report *Report, withoutDiagonals bool) <-chan int {
 			}
 		}
 		//fmt.Printf("(x, y) = (%d, %d) => %d\n", x, y, x*K+y)
-		zones <- x*K + y
+		zones <- serializeXY(x, y)
 	}()
 
 	return zones
 }
 
-const K = 100000
+func serializeXY(x int, y int) string {
+	return fmt.Sprintf("(%d,%d)", x, y)
+}
 
 func findDangersZone(filename string, withoutDiagonals bool) {
 	done := make(chan struct{})
 	defer close(done)
 
-	marks := make(map[int]int)
+	marks := make(map[string]int)
+	dangersZones := 0
 
 	stringsStream, streamErr := utils.ReadStrings(done, filename)
 	for str := range stringsStream {
@@ -113,6 +116,9 @@ func findDangersZone(filename string, withoutDiagonals bool) {
 		//fmt.Println(report)
 		for key := range generateDangerZones(report, withoutDiagonals) {
 			marks[key]++
+			if marks[key] == 2 {
+				dangersZones++
+			}
 		}
 	}
 
@@ -121,15 +127,7 @@ func findDangersZone(filename string, withoutDiagonals bool) {
 	}
 
 	//fmt.Println(marks)
-
-	count := 0
-	for _, value := range marks {
-		if value > 1 {
-			count++
-		}
-	}
-
-	fmt.Println("Answer", count)
+	fmt.Println("Answer", dangersZones)
 
 }
 
