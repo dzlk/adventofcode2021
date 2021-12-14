@@ -9,6 +9,26 @@ import (
 	"strings"
 )
 
+func ReadNumbers(filename string, sep string) ([]int, error) {
+	nums := make([]int, 0)
+
+	strs, err := ReadAllStrings(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, s := range strs {
+		part, err := GetNumbersFromString(s, sep)
+		if err != nil {
+			return nil, err
+		}
+
+		nums = append(nums, part...)
+	}
+
+	return nums, nil
+}
+
 func GetNumbersFromString(str string, sep string) ([]int, error) {
 	nums := make([]int, 0)
 
